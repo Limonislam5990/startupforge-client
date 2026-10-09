@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "../../lib/auth";
+import DashboardShell from "../../components/dashboard/DashboardShell";
 
 export default async function DashboardLayout({ children }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -11,6 +12,13 @@ export default async function DashboardLayout({ children }) {
   // Blocked by admin
   if (session.user.isBlocked) redirect("/blocked");
 
-  // Sidebar will be added here later
-  return <>{children}</>;
+  const u = session.user;
+  const user = {
+    name: u.name,
+    email: u.email,
+    image: u.image || null,
+    role: u.role || "collaborator",
+  };
+
+  return <DashboardShell user={user}>{children}</DashboardShell>;
 }

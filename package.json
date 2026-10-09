@@ -21,7 +21,9 @@
     "next": "16.4.0",
     "postcss": "^8.5.29",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-hot-toast": "^2.6.1",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@gravity-ui/icons": "^2.22.0",

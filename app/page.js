@@ -1,23 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Rocket, Users, Lightbulb, Handshake, CalendarDays } from "lucide-react";
-
-/* ---------- Sample data (later replace with API fetch from your server) ---------- */
-const featuredStartups = [
-  { id: 1, name: "GreenCart", founder: "Rafiq Ahmed", industry: "E-commerce", teamSize: 4 },
-  { id: 2, name: "MediLink", founder: "Nusrat Jahan", industry: "HealthTech", teamSize: 3 },
-  { id: 3, name: "EduSpark", founder: "Tanvir Hasan", industry: "EdTech", teamSize: 5 },
-  { id: 4, name: "FarmBridge", founder: "Sabbir Khan", industry: "AgriTech", teamSize: 2 },
-];
-
-const featuredOpportunities = [
-  { id: 1, role: "Frontend Developer", startup: "GreenCart", skills: "React, Tailwind", deadline: "2026-11-15" },
-  { id: 2, role: "UI/UX Designer", startup: "MediLink", skills: "Figma, Prototyping", deadline: "2026-11-20" },
-  { id: 3, role: "Growth Marketer", startup: "EduSpark", skills: "SEO, Ads, Analytics", deadline: "2026-11-25" },
-  { id: 4, role: "Backend Developer", startup: "FarmBridge", skills: "Node.js, MongoDB", deadline: "2026-12-01" },
-];
+import { Rocket, Users, Lightbulb, Handshake } from "lucide-react";
+import { apiJson } from "../lib/api";
+import { StartupCard, OpportunityCard } from "../components/Cards";
+import { CardSkeleton, EmptyState } from "../components/ui";
 
 const reasons = [
   { icon: Lightbulb, title: "Turn ideas into teams", text: "Post your startup and the roles you need in a few minutes." },
@@ -26,10 +15,10 @@ const reasons = [
 ];
 
 const stats = [
-  { value: "500+", label: "Startups posted" },
-  { value: "2,400+", label: "Collaborators joined" },
-  { value: "1,100+", label: "Teams formed" },
-  { value: "35", label: "Industries covered" },
+  { value: "3 roles", label: "Founder, Collaborator, Admin" },
+  { value: "Free", label: "Post up to 3 opportunities" },
+  { value: "Secure", label: "Better Auth and JWT cookies" },
+  { value: "Fast", label: "Search and filter in seconds" },
 ];
 
 /* ---------- Small reusable pieces ---------- */
@@ -49,23 +38,37 @@ function SectionHeading({ title, subtitle, href }) {
   );
 }
 
+// Loads the latest items from the server for the two dynamic sections
+function useLatest(path) {
+  const [state, setState] = useState({ items: [], loading: true });
+  useEffect(() => {
+    let cancelled = false;
+    apiJson(path)
+      .then((res) => !cancelled && setState({ items: res.data || [], loading: false }))
+      .catch(() => !cancelled && setState({ items: [], loading: false }));
+    return () => {
+      cancelled = true;
+    };
+  }, [path]);
+  return state;
+}
+
 export default function HomePage() {
+  const startups = useLatest("/startups?limit=4");
+  const opportunities = useLatest("/opportunities?limit=4");
+
   return (
     <main className="bg-white text-slate-800">
       {/* ---------- Banner ---------- */}
       <section className="bg-gradient-to-b from-indigo-50 to-white">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:px-8 lg:py-24">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
               Build your startup team, one role at a time
             </h1>
             <p className="mt-5 max-w-lg text-lg text-slate-600">
-              StartupForge connects founders with developers, designers and marketers who want to
-              help build something new. Post your idea or find a team to join.
+              StartupForge connects founders with developers, designers and marketers who want to help build
+              something new. Post your idea or find a team to join.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -96,38 +99,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---------- Featured Startups ---------- */}
+      {/* ---------- Featured Startups (dynamic) ---------- */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <SectionHeading
-          title="Featured startups"
-          subtitle="The newest startups looking for teammates."
-          href="/startups"
-        />
+        <SectionHeading title="Featured startups" subtitle="The newest startups looking for teammates." href="/startups" />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredStartups.map((s) => (
-            <div
-              key={s.id}
-              className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100 text-lg font-bold text-indigo-700">
-                {s.name[0]}
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900">{s.name}</h3>
-              <p className="mt-1 text-sm text-slate-600">Founder: {s.founder}</p>
-              <p className="mt-1 text-sm text-slate-600">Industry: {s.industry}</p>
-              <p className="mt-1 text-sm text-slate-600">Team size needed: {s.teamSize}</p>
-              <Link
-                href={`/startups/${s.id}`}
-                className="mt-auto pt-4 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-              >
-                View details
-              </Link>
+          {startups.loading ? (
+            <CardSkeleton count={4} />
+          ) : startups.items.length ? (
+            startups.items.map((s) => <StartupCard key={s._id} s={s} />)
+          ) : (
+            <div className="sm:col-span-2 lg:col-span-4">
+              <EmptyState title="No startups yet" text="Approved startups will show up here." />
             </div>
-          ))}
+          )}
         </div>
       </section>
 
-      {/* ---------- Featured Opportunities ---------- */}
+      {/* ---------- Featured Opportunities (dynamic) ---------- */}
       <section className="bg-slate-50">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <SectionHeading
@@ -136,25 +124,15 @@ export default function HomePage() {
             href="/opportunities"
           />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredOpportunities.map((o) => (
-              <div
-                key={o.id}
-                className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <h3 className="text-lg font-semibold text-slate-900">{o.role}</h3>
-                <p className="mt-1 text-sm font-medium text-indigo-600">{o.startup}</p>
-                <p className="mt-3 text-sm text-slate-600">Skills: {o.skills}</p>
-                <p className="mt-2 flex items-center gap-1 text-sm text-slate-600">
-                  <CalendarDays size={14} /> Apply by {o.deadline}
-                </p>
-                <Link
-                  href={`/opportunities/${o.id}`}
-                  className="mt-auto pt-4 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-                >
-                  View and apply
-                </Link>
+            {opportunities.loading ? (
+              <CardSkeleton count={4} />
+            ) : opportunities.items.length ? (
+              opportunities.items.map((o) => <OpportunityCard key={o._id} o={o} />)
+            ) : (
+              <div className="sm:col-span-2 lg:col-span-4">
+                <EmptyState title="No opportunities yet" text="New roles will show up here as founders post them." />
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -183,12 +161,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---------- Startup Statistics ---------- */}
+      {/* ---------- Platform highlights ---------- */}
       <section className="bg-indigo-600">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 text-center sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
           {stats.map((s) => (
             <div key={s.label}>
-              <p className="text-4xl font-extrabold text-white">{s.value}</p>
+              <p className="text-3xl font-extrabold text-white sm:text-4xl">{s.value}</p>
               <p className="mt-1 text-indigo-100">{s.label}</p>
             </div>
           ))}

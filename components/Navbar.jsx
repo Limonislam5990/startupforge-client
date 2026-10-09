@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LayoutDashboard, User, LogOut, ChevronDown } from "lucide-react";
-import { authClient } from "@/lib/auth-client"; // Better Auth client
+import { authClient } from "../lib/auth-client"; // Better Auth client
+import { Avatar } from "./ui";
 
 const publicLinks = [
   { name: "Home", href: "/" },
@@ -23,12 +23,15 @@ export default function Navbar() {
   const user = session?.user;
 
   const handleLogout = async () => {
+    // remove the JWT cookie first, then end the Better Auth session
+    await fetch("/api/token", { method: "DELETE", credentials: "same-origin" }).catch(() => {});
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
           setDropdown(false);
           setOpen(false);
           router.push("/");
+          router.refresh();
         },
       },
     });
@@ -80,16 +83,8 @@ export default function Navbar() {
                 aria-haspopup="true"
                 aria-expanded={dropdown}
               >
-                <Image
-                  src={user.image || "/avatar-placeholder.png"}
-                  alt={user.name || "User"}
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full object-cover"
-                />
-                <span className="max-w-[100px] truncate text-sm font-medium text-slate-700">
-                  {user.name}
-                </span>
+                <Avatar src={user.image} name={user.name || "User"} size={32} />
+                <span className="max-w-[100px] truncate text-sm font-medium text-slate-700">{user.name}</span>
                 <ChevronDown size={16} className="text-slate-500" />
               </button>
 
@@ -155,23 +150,14 @@ export default function Navbar() {
         <div className="border-t border-slate-200 bg-white px-4 pb-4 pt-2 md:hidden">
           <div className="flex flex-col gap-1">
             {publicLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className={linkClass(link.href)}
-              >
+              <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={linkClass(link.href)}>
                 {link.name}
               </Link>
             ))}
 
             {user ? (
               <>
-                <Link
-                  href="/dashboard"
-                  onClick={() => setOpen(false)}
-                  className={linkClass("/dashboard")}
-                >
+                <Link href="/dashboard" onClick={() => setOpen(false)} className={linkClass("/dashboard")}>
                   Dashboard
                 </Link>
                 <Link
